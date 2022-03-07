@@ -1,0 +1,79 @@
+Java集合
+1. 包括Collection和Map，前者是存储对象的集合类，后者是存储键值对
+2. Collection包括Set、List、Queue
+Set元素不重复。TreeSet有序，HashSet无序。
+List元素可重复，有序。List的具体实现类有ArrayList、LinkedList，两者底层实现不同，前者是数组，后者是双向链表；
+补充：数组和链表的区别：
+          数组：内存连续，存储元素大小固定；随机访问效率高，为O(1)，删除元素效率低
+          链表：散装内存，需要额外存储指针，比数组占用内存大一些；随机访问效率低，删除效率高
+Queue的实现类是LinkedList
+3. Map存储键值对，通过key找到对应的value
+HashMap
+实现原理：Entry数组保存key和value。通过hash算法计算出key和value值，将数组大小n-1和hash值做与运算，得到数组下标，在该位置放入Entry
+    采用链表法是为了避免hash算法冲突，jdk1.7以前是头插法，即在链表头部插入新的Entry；jdk1.8之后采用尾插法，链表长度大于8时转换为红黑树
+    当链表的长度大于8且数组大小大于等于64的时候，就把链表转化成红黑树，当红黑树节点小于6的时候，又会退化成链表。
+    jdk1.8红黑树的作用：避免hash冲突导致链表长度过长
+    jdk1.8对HashMap的改动：hash函数的优化、扩容rehash的优化、头插法和尾插法、插入与扩容时机的变更
+jdk1.7和jdk1.8的比较：
+    jdk1.7采用拉链法解决哈希冲突，jdk1.8将链表转化为红黑树；
+    jdk1.8的优化：resize扩容优化、引入红黑树避免单条链表过长。
+put()方法：
+计算 key的hash值，这里调用了 hash方法，hash方法实际是让key.hashCode()与key.hashCode()>>>16进行异或操作，高16bit补0，目的是减少碰撞。
+HashMap扩容：
+在jdk1.8中，resize方法是在HashMap中的键值对大于阀值时或者初始化时，就调用resize方法进行扩容。每次扩展的时候，都是扩展2倍
+LinkedHashMap
+    LinkedHashMap的父类是HashMap，并基于HashMap做了一些扩展。首先它在HashMap的Entry的基础上加了两个指针：before 和 after；目的是把塞入的 Entry 之间进行关联，串成双向链表
+CurrentHashMap
+    线程安全。jdk1.7使用分段锁segment，防止锁竞争，提高并发访问率。jdk1.8摒弃了segment的概念，而是直接用Node数组+链表+红黑树的数据结构来实现，并发控制使用synchronized和CAS来操作
+4. fail-fast机制：Java集合的错误检测机制，当多个线程对集合结构改变时会导致fail-fast机制
+5. List
+ArrayList：随机访问，查找速度快；插入删除效率低
+LinkedList：插入删除效率高，占用内存大
+ArrayList和LinkedList不是线程安全的
+6. Set
+HashSet
+实现原理：HashSet是基于HashMap实现的，HashSet的值存放于HashMap的key上。由于HashMap的key是唯一的，由源码可以看出HashSet添加进去的值就是作为HashMap的key，并且在HashMap中如果K/V相同时，会用新的V覆盖掉旧的V，然后返回旧的V。所以不会重复。
+7. HashMap和HashTable的区别
+HashMap非线程安全，HashTable线程安全，通过synchronized修饰。
+HashMap比HashTable效率高，一般都使用HashMap。
+HashMap与CurrentHashMap区别
+    ConcurrentHashMap对整个桶数组进行了分割分段(Segment)，然后在每一个分段上都用lock锁进行保护，相对于HashTable的synchronized 锁的粒度更精细了一些，并发性能更好，而HashMap没有锁机制，不是线程安全的。
+    HashMap的键值对允许有null，但是ConCurrentHashMap都不允许。
+8. Array和ArrayLiat的区别
+    Array可以存储基本数据类型和对象，ArrayList只能存储对象；
+    Array是指定固定大小的，而ArrayList大小是自动扩展的；
+    Array内置方法没有ArrayList多，比如addAll、removeAll、iteration等方法只有ArrayList有。
+9. Comparable和Comparator的区别
+    comparable接口实际上是出自java.lang包，它有一个compareTo(Object obj)方法用来排序
+    comparator接口实际上是出自 java.util 包，它有一个compare(Object obj1, Object obj2)方法用来排序
+一般我们需要对一个集合使用自定义排序时，我们就要重写compareTo方法或compare方法，当我们需要对某一个集合实现两种排序方式，比如一个song对象中的歌名和歌手名分别采用一种排序方法的话，我们可以重写compareTo方法和使用自制的Comparator方法或者以两个Comparator来实现歌名排序和歌星名排序，第二种代表我们只能使用两个参数版的Collections.sort()。
+10. volatile与synchronized的区别
+synchronized和volatile是互补的：
+    volatile是线程同步的轻量级实现，所以volatile性能比synchronized好。但是volatile只能用于变量而synchronized可以修饰方法以及代码块。
+    volatile能保证数据的可见性，但不能保证数据的原子性。synchronized两者都能保证。
+    volatile主要用于解决变量在多个线程之间的可见性，而synchronized解决的是多个线程之间访问资源的同步性。
+11. Java线程池
+7大核心参数：
+    corePoolSize：核心线程
+    maximumPoolSize:线程池中最大线程数
+    keepAliveTime：多余空闲线程数的存活时间，当前线程数大于corePoolSize，并且等待时间大于keepAliveTime，多于线程或被销毁直到剩下corePoolSize为止。
+    TimeUnit unit： keepAliveTime的单位。
+    workQueue：阻塞队列，被提交但未必执行的任务。
+    threadFactory：用于创建线程池中工作线程的线程工厂，一般用默认的。
+    handler：拒绝策略，当堵塞队列满了并且工作线程大于线程池的最大线程数（maximumPoolSize）。
+线程池执行流程：
+（1）当线程数小于核心线程数的时候，使用核心线程数
+（2）如果核心线程数小于线程数，就将多余的线程放入任务队列（阻塞队列）中
+（3）当任务队列（阻塞队列）满的时候，就启动最大线程数
+（4）当最大线程数也达到后，就将启动拒绝策略。
+4种拒绝策略：
+    ThreadPoolExecutor.AbortPolicy：线程池的默认拒绝策略为AbortPolicy，即丢弃任务并抛出RejectedExecutionException异常（即后面提交的请求不会放入队列也不会直接消费并抛出异常）；
+    ThreadPoolExecutor.DiscardPolicy：丢弃任务，但是不抛出异常。如果线程队列已满，则后续提交的任务都会被丢弃，且是静默丢弃（也不会抛出任何异常，任务直接就丢弃了）；
+    ThreadPoolExecutor.DiscardOldestPolicy：丢弃队列最前面的任务，然后重新提交被拒绝的任务（丢弃掉了队列最前的任务，并不抛出异常，直接丢弃了）；
+    ThreadPoolExecutor.CallerRunsPolicy：由调用线程处理该任务（不会丢弃任务，最后所有的任务都执行了，并不会抛出异常）
+MySQL
+1. 事务隔离级别
+未提交读（Read Uncommitted）：在事务 A 读取数据时，事务 B 读取和修改数据加了共享锁。这种隔离级别，会导致脏读、不可重复读以及幻读
+已提交读（Read Committed）：在事务 A 读取数据时增加了共享锁，一旦读取，立即释放锁，事务 B 读取修改数据时增加了行级排他锁，直到事务结束才释放锁。也就是说，事务 A 在读取数据时，事务 B 只能读取数据，不能修改。当事务 A 读取到数据后，事务 B才能修改。这种隔离级别，可以避免脏读，但依然存在不可重复读以及幻读的问题
+可重复读（Repeatable Read）：在事务 A 读取数据时增加了共享锁，事务结束，才释放锁，事务 B 读取修改数据时增加了行级排他锁，直到事务结束才释放锁。也就是说，事务A 在没有结束事务时，事务 B 只能读取数据，不能修改。当事务 A 结束事务，事务 B 才能修改。这种隔离级别，可以避免脏读、不可重复读，但依然存在幻读的问题
+可序列化（Serializable）：在事务 A 读取数据时增加了共享锁，事务结束，才释放锁，事务 B 读取修改数据时增加了表级排他锁，直到事务结束才释放锁。可序列化解决了脏读、不可重复读、幻读等问题，但隔离级别越来越高的同时，并发性会越来越低。
